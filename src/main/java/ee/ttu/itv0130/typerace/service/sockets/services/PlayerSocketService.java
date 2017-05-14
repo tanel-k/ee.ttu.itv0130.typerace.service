@@ -33,8 +33,18 @@ public class PlayerSocketService {
 	@Autowired
 	private WordService wordService;
 
+	private static class LobbyItem {
+		public PlayerSocketSession playerSession;
+		public Date insertionDate;
+	
+		public LobbyItem(PlayerSocketSession playerSession, Date insertionDate) {
+			this.playerSession = playerSession;
+			this.insertionDate = insertionDate;
+		}
+	}
+
 	private Map<String, PlayerSocketSession> socketMap = new ConcurrentHashMap<>();
-	private Map<String, PlayerSocketSession> lobbyMap = new ConcurrentHashMap<>();
+	private Map<String, LobbyItem> lobbyMap = new ConcurrentHashMap<>();
 	private Map<String, GameState> gameStateMap = new ConcurrentHashMap<>();
 
 	public synchronized void handleMessage(WebSocketSession session, JSONObject jsonMessage) {
@@ -95,10 +105,26 @@ public class PlayerSocketService {
 
 	private void addToLobby(PlayerSocketSession playerSession) {
 		if (lobbyMap.isEmpty()) {
-			lobbyMap.put(playerSession.getId(), playerSession);
+			lobbyMap.put(playerSession.getId(), new LobbyItem(playerSession, new Date()));
 		} else {
-			String lobbyKey = lobbyMap.entrySet().iterator().next().getKey();
-			PlayerSocketSession otherPlayerSession = lobbyMap.remove(lobbyKey);
+			String lobbyKey = lobbyMap.entrySet()
+				.stream()
+				.reduce(null, (accEntry, currEntry) -> {
+					if (accEntry == null) {
+						return currEntry;
+					}
+					
+					LobbyItem acc = accEntry.getValue();
+					LobbyItem curr = currEntry.getValue();
+					if (curr.insertionDate.before(acc.insertionDate)) {
+						return currEntry;
+					}
+					
+					return accEntry;
+				})
+				.getKey();
+			
+			PlayerSocketSession otherPlayerSession = lobbyMap.remove(lobbyKey).playerSession;
 			startGame(playerSession, otherPlayerSession);
 		}
 	}
