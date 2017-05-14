@@ -25,11 +25,20 @@ public class Application implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
+		// going to take a while
+		// 10k docs = 1h
+		int processedLinesLeft = 53382;
+		
 		File file = new ClassPathResource("words.txt").getFile();
 		FileReader reader = new FileReader(file);
 		BufferedReader bufferedReader = new BufferedReader(reader);
 		String line;
 		while ((line = bufferedReader.readLine()) != null) {
+			if (processedLinesLeft > 0) {
+				processedLinesLeft--;
+				continue;
+			}
+			
 			if (!StringUtils.isEmpty(line)) {
 				Word word = new Word();
 				word.setChars(line);
