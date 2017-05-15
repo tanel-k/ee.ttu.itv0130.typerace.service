@@ -11,6 +11,23 @@ public class PlayerScores {
 	}
 
 	public void addRoundScore(RoundScore roundScore) {
+		roundScore.setIndex(roundScores.size() + 1);
 		roundScores.add(roundScore);
+	}
+
+	protected void addRoundScoreWithoutIndex(RoundScore roundScore) {
+		roundScores.add(roundScore);
+	}
+
+	public PlayerScores after(Integer roundIndex) {
+		PlayerScores copyScores = new PlayerScores();
+		
+		for (RoundScore roundScore : roundScores) {
+			if (roundScore.getIndex() > roundIndex) {
+				copyScores.addRoundScoreWithoutIndex(roundScore);
+			}
+		}
+		
+		return copyScores;
 	}
 }

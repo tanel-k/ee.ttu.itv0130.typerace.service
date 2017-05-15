@@ -145,6 +145,7 @@ public class PlayerSocketService {
 					// store scores
 					String otherPlayerSessionId = gameState.getOtherPlayerSessionId(playerSession.getId());
 					RoundScore roundScore = new RoundScore();
+					roundScore.setWord(gameState.getCurrentWord());
 					roundScore.setDidWin(false);
 					roundScore.setPlayerTimeMillis(playerTimeMillis);
 					roundScore.setPlayerScore(loserScore);
