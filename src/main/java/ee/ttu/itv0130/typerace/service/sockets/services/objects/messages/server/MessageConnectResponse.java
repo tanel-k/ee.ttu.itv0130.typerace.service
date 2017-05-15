@@ -4,7 +4,7 @@ import org.json.JSONObject;
 
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.ServerMessageType;
 
-public class MessageJoinLobbyResponse extends ServerMessage {
+public class MessageConnectResponse extends ServerMessage {
 	private String sessionId;
 
 	public void setSessionId(String sessionId) {
@@ -20,7 +20,7 @@ public class MessageJoinLobbyResponse extends ServerMessage {
 		json.put("sessionId", sessionId);
 	}
 
-	public MessageJoinLobbyResponse() {
-		super(ServerMessageType.JOIN_LOBBY_RESPONSE);
+	public MessageConnectResponse() {
+		super(ServerMessageType.CONNECT_RESPONSE);
 	}
 }

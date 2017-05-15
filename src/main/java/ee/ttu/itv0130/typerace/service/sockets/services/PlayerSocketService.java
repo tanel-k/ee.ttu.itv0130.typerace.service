@@ -21,7 +21,8 @@ import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.player.
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.player.MessageSetNickname;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.player.MessageTypeWord;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageBroadcastWord;
-import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageJoinLobbyResponse;
+import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageConnectResponse;
+import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageSetNicknameResponse;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageTerminateGame;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageTypeWordResponse;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.ServerMessage;
@@ -70,7 +71,7 @@ public class PlayerSocketService {
 
 	public synchronized void register(WebSocketSession session) {
 		String sessionId = session.getId();
-		MessageJoinLobbyResponse message = new MessageJoinLobbyResponse();
+		MessageConnectResponse message = new MessageConnectResponse();
 		message.setSessionId(sessionId);
 		
 		PlayerSocketSession gameSession = new PlayerSocketSession(session);
@@ -113,6 +114,9 @@ public class PlayerSocketService {
 		// nickname is broadcast together with current word
 		String nickname = message.getNickname();
 		playerSession.setNickname(nickname);
+		MessageSetNicknameResponse response = new MessageSetNicknameResponse();
+		response.setIsAccepted(true);
+		sendMessage(playerSession, response);
 	}
 
 	private void handleTypeWordMessage(PlayerSocketSession playerSession, MessageTypeWord message) {
