@@ -227,8 +227,8 @@ public class PlayerSocketService {
 		message.setWord(gameState.getCurrentWord());
 		
 		for (PlayerSocketSession playerSession : gameState.getPlayers()) {
-			sendMessage(playerSession, message);
 			message.setOpponentNickname(gameState.getOtherPlayer(playerSession).getNickname());
+			sendMessage(playerSession, message);
 		}
 	}
 
