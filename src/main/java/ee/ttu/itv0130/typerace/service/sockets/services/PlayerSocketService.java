@@ -28,11 +28,6 @@ import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.
 
 @Service
 public class PlayerSocketService {
-	@Autowired
-	private ScoreService scoreService;
-	@Autowired
-	private WordService wordService;
-
 	private static class LobbyItem {
 		public PlayerSocketSession playerSession;
 		public Date insertionDate;
@@ -42,6 +37,11 @@ public class PlayerSocketService {
 			this.insertionDate = insertionDate;
 		}
 	}
+
+	@Autowired
+	private ScoreService scoreService;
+	@Autowired
+	private WordService wordService;
 
 	private Map<String, PlayerSocketSession> socketMap = new ConcurrentHashMap<>();
 	private Map<String, LobbyItem> lobbyMap = new ConcurrentHashMap<>();
@@ -124,13 +124,17 @@ public class PlayerSocketService {
 			// game exists
 			Long currentTimeMillis = new Date().getTime();
 			if (gameState.getCurrentWord().equals(message.getWord())) {
+				// player sent word correctly
 				Long playerTimeMillis = currentTimeMillis - gameState.getRoundStartedMillis();
 				gameState.setPlayerTime(playerSession.getId(), playerTimeMillis);
 				responseMessage.setPlayerTimeMillis(playerTimeMillis);
+				// 1 point per character for the loser
 				int loserScore = gameState.getCurrentWord().length();
+				// 10 points per character for the winner
 				int winnerScore = loserScore * 10;
 				
 				if (gameState.hasWinner()) {
+					// round already has a winner - player lost
 					gameMessageType = GameMessageType.ROUND_LOST;
 					responseMessage.setPlayerScore(loserScore);
 					
@@ -148,11 +152,14 @@ public class PlayerSocketService {
 					// start the next round
 					startNewRound(gameState);
 				} else {
+					// round had no previous winner - player won
 					gameMessageType = GameMessageType.ROUND_WON;
 					responseMessage.setPlayerScore(winnerScore);
 					gameState.setHasWinner(true);
+					// wait for other player to complete
 				}
 			} else {
+				// player mistyped word
 				gameMessageType = GameMessageType.WORD_MISMATCH;
 			}
 		} else {
@@ -166,8 +173,10 @@ public class PlayerSocketService {
 
 	private void findGameForPlayer(PlayerSocketSession playerSession) {
 		if (lobbyMap.isEmpty()) {
+			// nobody else is waiting to join a game
 			lobbyMap.put(playerSession.getId(), new LobbyItem(playerSession, new Date()));
 		} else {
+			// find the player who has been in the lobby the longest
 			String lobbyKey = lobbyMap.entrySet()
 				.stream()
 				.reduce(null, (accEntry, currEntry) -> {
@@ -221,6 +230,7 @@ public class PlayerSocketService {
 		
 		for (PlayerSocketSession playerSession : gameState.getPlayers()) {
 			sendMessage(playerSession, message);
+			message.setOpponentNickname(gameState.getOtherPlayer(playerSession).getNickname());
 		}
 	}
 

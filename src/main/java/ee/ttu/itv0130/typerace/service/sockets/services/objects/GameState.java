@@ -60,6 +60,10 @@ public class GameState {
 		return null;
 	}
 
+	public PlayerSocketSession getOtherPlayer(PlayerSocketSession otherPlayerSession) {
+		return getOtherPlayer(otherPlayerSession.getId());
+	}
+
 	public Collection<PlayerSocketSession> getPlayers() {
 		return playerMap.values();
 	}
