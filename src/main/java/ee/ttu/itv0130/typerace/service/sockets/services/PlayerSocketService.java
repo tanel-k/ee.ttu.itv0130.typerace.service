@@ -109,6 +109,7 @@ public class PlayerSocketService {
 	}
 
 	private void handleSetNicknameMessage(PlayerSocketSession playerSession, MessageSetNickname message) {
+		// nickname is broadcast together with current word
 		String nickname = message.getNickname();
 		playerSession.setNickname(nickname);
 	}
