@@ -52,6 +52,8 @@ public class RoundScore {
 		opponentRoundScore.setDidWin(!didWin);
 		opponentRoundScore.setOpponentTimeMillis(playerTimeMillis);
 		opponentRoundScore.setPlayerTimeMillis(opponentTimeMillis);
+		opponentRoundScore.setOpponentScore(playerScore);
+		opponentRoundScore.setPlayerScore(opponentScore);
 		return opponentRoundScore;
 	}
 }

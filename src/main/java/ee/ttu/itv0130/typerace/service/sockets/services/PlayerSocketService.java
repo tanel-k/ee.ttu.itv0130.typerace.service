@@ -126,26 +126,29 @@ public class PlayerSocketService {
 				Long playerTimeMillis = currentTimeMillis - gameState.getRoundStartedMillis();
 				gameState.setPlayerTime(playerSession.getId(), playerTimeMillis);
 				responseMessage.setPlayerTimeMillis(playerTimeMillis);
+				int loserScore = gameState.getCurrentWord().length();
+				int winnerScore = loserScore * 10;
 				
 				if (gameState.hasWinner()) {
 					gameMessageType = GameMessageType.ROUND_LOST;
+					responseMessage.setPlayerScore(loserScore);
 					
 					// store scores
 					String otherPlayerSessionId = gameState.getOtherPlayerSessionId(playerSession.getId());
-					int loserScore = gameState.getCurrentWord().length();
-					int winnerScore = loserScore * 10;
 					RoundScore roundScore = new RoundScore();
 					roundScore.setDidWin(false);
 					roundScore.setPlayerTimeMillis(playerTimeMillis);
 					roundScore.setPlayerScore(loserScore);
-					roundScore.setPlayerScore(winnerScore);
+					roundScore.setOpponentScore(winnerScore);
 					roundScore.setOpponentTimeMillis(gameState.getPlayerTime(otherPlayerSessionId));
 					scoreService.addRoundScore(playerSession.getId(), roundScore);
+					scoreService.addRoundScore(otherPlayerSessionId, roundScore.forOpponent());
 					
 					// start the next round
 					startNewRound(gameState);
 				} else {
 					gameMessageType = GameMessageType.ROUND_WON;
+					responseMessage.setPlayerScore(winnerScore);
 					gameState.setHasWinner(true);
 				}
 			} else {

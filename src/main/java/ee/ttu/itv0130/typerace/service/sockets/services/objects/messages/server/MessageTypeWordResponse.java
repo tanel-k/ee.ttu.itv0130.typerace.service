@@ -8,6 +8,7 @@ import ee.ttu.itv0130.typerace.service.sockets.services.objects.ServerMessageTyp
 public class MessageTypeWordResponse extends ServerMessage {
 	private GameMessageType gameMessageType;
 	private Long playerTimeMillis;
+	private Integer playerScore;
 
 	public GameMessageType getGameMessageType() {
 		return gameMessageType;
@@ -25,11 +26,24 @@ public class MessageTypeWordResponse extends ServerMessage {
 		this.playerTimeMillis = playerTimeMillis;
 	}
 
+	public void setPlayerScore(int playerScore) {
+		this.playerScore = playerScore;
+	}
+
+	public Integer getPlayerScore() {
+		return playerScore;
+	}
+
 	@Override
 	protected void extendJSON(JSONObject json) {
 		json.put("gameMessageType", gameMessageType);
+		
 		if (playerTimeMillis != null) {
 			json.put("playerTimeMillis", playerTimeMillis);
+		}
+		
+		if (playerScore != null) {
+			json.put("playerScore", playerScore);
 		}
 	}
 
