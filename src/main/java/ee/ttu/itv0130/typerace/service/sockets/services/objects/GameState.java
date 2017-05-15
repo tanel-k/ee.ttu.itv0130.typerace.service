@@ -1,13 +1,10 @@
 package ee.ttu.itv0130.typerace.service.sockets.services.objects;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class GameState {
-	private Set<String> previousWords = new HashSet<>();
 	private Map<String, PlayerSocketSession> playerMap = new ConcurrentHashMap<>();
 	private Map<String, Long> playerTimeMap = new ConcurrentHashMap<>();
 
@@ -73,7 +70,6 @@ public class GameState {
 	}
 
 	public void setCurrentWord(String currentWord) {
-		this.previousWords.add(currentWord);
 		this.currentWord = currentWord;
 	}
 
@@ -83,9 +79,5 @@ public class GameState {
 
 	public void setHasWinner(boolean hasWinner) {
 		this.hasWinner = hasWinner;
-	}
-
-	public Set<String> getPreviousWords() {
-		return previousWords;
 	}
 }

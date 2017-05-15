@@ -211,16 +211,10 @@ public class PlayerSocketService {
 	}
 
 	private void startNewRound(GameState gameState) {
-		String nextWord = null;
-		
-		do {
-			nextWord = wordService.getRandomWord();
-		} while (gameState.getPreviousWords().contains(nextWord));
-		
+		String nextWord = wordService.getRandomWord();
 		gameState.setCurrentWord(nextWord);
 		gameState.setRoundStartedMillis(new Date().getTime());
 		gameState.setHasWinner(false);
-		
 		broadcastWord(gameState);
 	}
 
