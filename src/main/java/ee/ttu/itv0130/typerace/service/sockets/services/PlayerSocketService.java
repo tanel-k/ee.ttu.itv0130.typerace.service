@@ -76,7 +76,7 @@ public class PlayerSocketService {
 		PlayerSocketSession gameSession = new PlayerSocketSession(session);
 		socketMap.put(sessionId, gameSession);
 		
-		sendResponse(gameSession, message);
+		sendMessage(gameSession, message);
 	}
 
 	public synchronized void drop(WebSocketSession session) {
@@ -96,7 +96,7 @@ public class PlayerSocketService {
 			MessageTerminateGame terminationMessage = new MessageTerminateGame();
 			terminationMessage.setReason("Opponent left");
 			// opponent should manually re-join the game
-			sendResponse(otherPlayerSession, terminationMessage);
+			sendMessage(otherPlayerSession, terminationMessage);
 		}
 	}
 
@@ -161,7 +161,7 @@ public class PlayerSocketService {
 		}
 		
 		responseMessage.setGameMessageType(gameMessageType);
-		sendResponse(playerSession, responseMessage);
+		sendMessage(playerSession, responseMessage);
 	}
 
 	private void joinGame(PlayerSocketSession playerSession) {
@@ -220,11 +220,11 @@ public class PlayerSocketService {
 		message.setWord(gameState.getCurrentWord());
 		
 		for (PlayerSocketSession playerSession : gameState.getPlayers()) {
-			sendResponse(playerSession, message);
+			sendMessage(playerSession, message);
 		}
 	}
 
-	private void sendResponse(PlayerSocketSession playerSession, ServerMessage message) {
+	private void sendMessage(PlayerSocketSession playerSession, ServerMessage message) {
 		sendResponse(playerSession, message.toJSON());
 	}
 
