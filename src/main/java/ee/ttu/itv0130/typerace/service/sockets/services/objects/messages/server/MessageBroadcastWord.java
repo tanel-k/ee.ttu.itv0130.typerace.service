@@ -6,6 +6,7 @@ import ee.ttu.itv0130.typerace.service.sockets.services.objects.ServerMessageTyp
 
 public class MessageBroadcastWord extends ServerMessage {
 	private String word;
+	private String opponentNickname;
 
 	public void setWord(String word) {
 		this.word = word;
@@ -15,9 +16,18 @@ public class MessageBroadcastWord extends ServerMessage {
 		return word;
 	}
 
+	public void setOpponentNickname(String opponentNickname) {
+		this.opponentNickname = opponentNickname;
+	}
+
+	public String getOpponentNickname() {
+		return opponentNickname;
+	}
+
 	@Override
 	protected void extendJSON(JSONObject json) {
 		json.put("word", word);
+		json.put("opponentNickname", opponentNickname);
 	}
 
 	public MessageBroadcastWord() {

@@ -17,7 +17,7 @@ import ee.ttu.itv0130.typerace.service.sockets.services.objects.GameMessageType;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.GameState;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.PlayerMessageType;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.PlayerSocketSession;
-import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.player.MessageJoinLobby;
+import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.player.MessageJoinGame;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.player.MessageSetNickname;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.player.MessageTypeWord;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageBroadcastWord;
@@ -54,8 +54,8 @@ public class PlayerSocketService {
 		PlayerSocketSession playerSession = socketMap.get(sessionId);
 		
 		switch (messageType) {
-			case JOIN_LOBBY:
-				handleJoinLobbyMessage(playerSession, new MessageJoinLobby(jsonMessage));
+			case JOIN_GAME:
+				handleJoinGameMessage(playerSession, new MessageJoinGame(jsonMessage));
 				break;
 			case TYPE_WORD:
 				handleTypeWordMessage(playerSession, new MessageTypeWord(jsonMessage));
@@ -94,16 +94,72 @@ public class PlayerSocketService {
 			PlayerSocketSession otherPlayerSession = gameState.getPlayer(otherSessionId);
 			MessageTerminateGame terminationMessage = new MessageTerminateGame();
 			terminationMessage.setReason("Opponent left");
-			// opponent should manually re-join the lobby
+			// opponent should manually re-join the game
 			sendResponse(otherPlayerSession, terminationMessage);
 		}
 	}
 
-	private void handleJoinLobbyMessage(PlayerSocketSession playerSession, MessageJoinLobby message) {
-		addToLobby(playerSession);
+	private void handleJoinGameMessage(PlayerSocketSession playerSession, MessageJoinGame message) {
+		if (gameStateMap.containsKey(playerSession.getId())) {
+			// already in-game
+			return;
+		}
+		
+		joinGame(playerSession);
 	}
 
-	private void addToLobby(PlayerSocketSession playerSession) {
+	private void handleSetNicknameMessage(PlayerSocketSession playerSession, MessageSetNickname message) {
+		String nickname = message.getNickname();
+		playerSession.setNickname(nickname);
+	}
+
+	private void handleTypeWordMessage(PlayerSocketSession playerSession, MessageTypeWord message) {
+		GameState gameState = gameStateMap.get(playerSession.getId());
+		MessageTypeWordResponse responseMessage = new MessageTypeWordResponse();
+		GameMessageType gameMessageType;
+		
+		if (gameState != null) {
+			// game exists
+			Long currentTimeMillis = new Date().getTime();
+			if (gameState.getCurrentWord().equals(message.getWord())) {
+				Long playerTimeMillis = currentTimeMillis - gameState.getRoundStartedMillis();
+				gameState.setPlayerTime(playerSession.getId(), playerTimeMillis);
+				responseMessage.setPlayerTimeMillis(playerTimeMillis);
+				
+				if (gameState.hasWinner()) {
+					gameMessageType = GameMessageType.ROUND_LOST;
+					
+					// store scores
+					String otherPlayerSessionId = gameState.getOtherPlayerSessionId(playerSession.getId());
+					int loserScore = gameState.getCurrentWord().length();
+					int winnerScore = loserScore * 10;
+					RoundScore roundScore = new RoundScore();
+					roundScore.setDidWin(false);
+					roundScore.setPlayerTimeMillis(playerTimeMillis);
+					roundScore.setPlayerScore(loserScore);
+					roundScore.setPlayerScore(winnerScore);
+					roundScore.setOpponentTimeMillis(gameState.getPlayerTime(otherPlayerSessionId));
+					scoreService.addRoundScore(playerSession.getId(), roundScore);
+					
+					// start the next round
+					startNewRound(gameState);
+				} else {
+					gameMessageType = GameMessageType.ROUND_WON;
+					gameState.setHasWinner(true);
+				}
+			} else {
+				gameMessageType = GameMessageType.WORD_MISMATCH;
+			}
+		} else {
+			// no game found
+			gameMessageType = GameMessageType.NO_GAME_FOUND;
+		}
+		
+		responseMessage.setGameMessageType(gameMessageType);
+		sendResponse(playerSession, responseMessage);
+	}
+
+	private void joinGame(PlayerSocketSession playerSession) {
 		if (lobbyMap.isEmpty()) {
 			lobbyMap.put(playerSession.getId(), new LobbyItem(playerSession, new Date()));
 		} else {
@@ -125,11 +181,11 @@ public class PlayerSocketService {
 				.getKey();
 			
 			PlayerSocketSession otherPlayerSession = lobbyMap.remove(lobbyKey).playerSession;
-			startGame(playerSession, otherPlayerSession);
+			startNewGame(playerSession, otherPlayerSession);
 		}
 	}
 
-	private void startGame(PlayerSocketSession firstPlayer, PlayerSocketSession secondPlayer) {
+	private void startNewGame(PlayerSocketSession firstPlayer, PlayerSocketSession secondPlayer) {
 		GameState gameState = new GameState();
 		gameState.addPlayer(firstPlayer);
 		gameState.addPlayer(secondPlayer);
@@ -137,10 +193,10 @@ public class PlayerSocketService {
 		gameStateMap.put(firstPlayer.getId(), gameState);
 		gameStateMap.put(secondPlayer.getId(), gameState);
 		
-		newRound(gameState);
+		startNewRound(gameState);
 	}
 
-	private void newRound(GameState gameState) {
+	private void startNewRound(GameState gameState) {
 		String nextWord = null;
 		
 		do {
@@ -150,6 +206,7 @@ public class PlayerSocketService {
 		gameState.setCurrentWord(nextWord);
 		gameState.setRoundStartedMillis(new Date().getTime());
 		gameState.setHasWinner(false);
+		
 		broadcastWord(gameState);
 	}
 
@@ -160,51 +217,6 @@ public class PlayerSocketService {
 		for (PlayerSocketSession playerSession : gameState.getPlayers()) {
 			sendResponse(playerSession, message);
 		}
-	}
-
-	private void handleSetNicknameMessage(PlayerSocketSession playerSession, MessageSetNickname message) {
-		String nickname = message.getNickname();
-		playerSession.setNickname(nickname);
-	}
-
-	private void handleTypeWordMessage(PlayerSocketSession playerSession, MessageTypeWord message) {
-		Long currentTimeMillis = new Date().getTime();
-		MessageTypeWordResponse responseMessage = new MessageTypeWordResponse();
-		
-		GameState gameState = gameStateMap.get(playerSession.getId());
-		GameMessageType gameMessageType;
-		if (gameState.getCurrentWord().equals(message.getWord())) {
-			Long playerTimeMillis = currentTimeMillis - gameState.getRoundStartedMillis();
-			gameState.setPlayerTime(playerSession.getId(), playerTimeMillis);
-			responseMessage.setPlayerTimeMillis(playerTimeMillis);
-			
-			if (gameState.hasWinner()) {
-				gameMessageType = GameMessageType.ROUND_LOST;
-				
-				// store scores
-				String otherPlayerSessionId = gameState.getOtherPlayerSessionId(playerSession.getId());
-				int loserScore = gameState.getCurrentWord().length();
-				int winnerScore = loserScore * 10;
-				RoundScore roundScore = new RoundScore();
-				roundScore.setDidWin(false);
-				roundScore.setPlayerTimeMillis(playerTimeMillis);
-				roundScore.setPlayerScore(loserScore);
-				roundScore.setPlayerScore(winnerScore);
-				roundScore.setOpponentTimeMillis(gameState.getPlayerTime(otherPlayerSessionId));
-				scoreService.addRoundScore(playerSession.getId(), roundScore);
-				
-				// start the next round
-				newRound(gameState);
-			} else {
-				gameMessageType = GameMessageType.ROUND_WON;
-				gameState.setHasWinner(true);
-			}
-		} else {
-			gameMessageType = GameMessageType.WORD_MISMATCH;
-		}
-		
-		responseMessage.setGameMessageType(gameMessageType);
-		sendResponse(playerSession, responseMessage);
 	}
 
 	private void sendResponse(PlayerSocketSession playerSession, ServerMessage message) {
