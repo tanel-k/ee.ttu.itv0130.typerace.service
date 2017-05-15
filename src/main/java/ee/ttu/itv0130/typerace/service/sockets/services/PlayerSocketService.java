@@ -62,6 +62,7 @@ public class PlayerSocketService {
 				break;
 			case SET_NICKNAME:
 				handleSetNicknameMessage(playerSession, new MessageSetNickname(jsonMessage));
+				break;
 			default:
 				break;
 		}
