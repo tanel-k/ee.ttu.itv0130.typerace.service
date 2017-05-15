@@ -31,7 +31,7 @@ import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.
 
 @Service
 public class PlayerSocketService {
-	private static final int NEW_ROUND_THROTTLE_MILLIS = 1500;
+	private static final int NEW_ROUND_THROTTLE_MILLIS = 2000;
 	private static class LobbyItem {
 		public PlayerSocketSession playerSession;
 		public Date insertionDate;
