@@ -106,7 +106,7 @@ public class PlayerSocketService {
 			return;
 		}
 		
-		joinGame(playerSession);
+		findGameForPlayer(playerSession);
 	}
 
 	private void handleSetNicknameMessage(PlayerSocketSession playerSession, MessageSetNickname message) {
@@ -164,7 +164,7 @@ public class PlayerSocketService {
 		sendMessage(playerSession, responseMessage);
 	}
 
-	private void joinGame(PlayerSocketSession playerSession) {
+	private void findGameForPlayer(PlayerSocketSession playerSession) {
 		if (lobbyMap.isEmpty()) {
 			lobbyMap.put(playerSession.getId(), new LobbyItem(playerSession, new Date()));
 		} else {
@@ -225,10 +225,10 @@ public class PlayerSocketService {
 	}
 
 	private void sendMessage(PlayerSocketSession playerSession, ServerMessage message) {
-		sendResponse(playerSession, message.toJSON());
+		sendMessage(playerSession, message.toJSON());
 	}
 
-	private void sendResponse(PlayerSocketSession playerSession, JSONObject responseJson) {
+	private void sendMessage(PlayerSocketSession playerSession, JSONObject responseJson) {
 		try {
 			playerSession.send(responseJson);
 		} catch (IOException e) {
