@@ -8,6 +8,7 @@ public class GameState {
 	private Map<String, PlayerSocketSession> playerMap = new ConcurrentHashMap<>();
 	private Map<String, Long> playerTimeMap = new ConcurrentHashMap<>();
 
+	private PlayerSocketSession winnerSession;
 	private Long roundStartedMillis;
 	private String currentWord;
 	private boolean hasWinner = false;
@@ -35,6 +36,14 @@ public class GameState {
 
 	public PlayerSocketSession getPlayer(String sessionId) {
 		return playerMap.get(sessionId);
+	}
+
+	public void setWinner(PlayerSocketSession winnerSession) {
+		this.winnerSession = winnerSession;
+	}
+
+	public PlayerSocketSession getWinner() {
+		return winnerSession;
 	}
 
 	public String getOtherPlayerSessionId(String sessionId) {

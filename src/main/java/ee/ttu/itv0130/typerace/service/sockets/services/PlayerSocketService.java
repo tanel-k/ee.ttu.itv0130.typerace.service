@@ -3,6 +3,8 @@ package ee.ttu.itv0130.typerace.service.sockets.services;
 import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.json.JSONObject;
@@ -29,6 +31,7 @@ import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.
 
 @Service
 public class PlayerSocketService {
+	private static final int NEW_ROUND_THROTTLE_MILLIS = 1500;
 	private static class LobbyItem {
 		public PlayerSocketSession playerSession;
 		public Date insertionDate;
@@ -123,49 +126,61 @@ public class PlayerSocketService {
 		GameState gameState = gameStateMap.get(playerSession.getId());
 		MessageTypeWordResponse responseMessage = new MessageTypeWordResponse();
 		GameMessageType gameMessageType;
+		boolean startNewRound = false;
 		
 		if (gameState != null) {
 			// game exists
-			Long currentTimeMillis = new Date().getTime();
-			if (gameState.getCurrentWord().equals(message.getWord())) {
-				// player sent word correctly
-				Long playerTimeMillis = currentTimeMillis - gameState.getRoundStartedMillis();
-				gameState.setPlayerTime(playerSession.getId(), playerTimeMillis);
-				responseMessage.setPlayerTimeMillis(playerTimeMillis);
-				// 1 point per character for the loser
-				int loserScore = gameState.getCurrentWord().length();
-				// 10 points per character for the winner
-				int winnerScore = loserScore * 10;
-				
-				if (gameState.hasWinner()) {
-					// round already has a winner - player lost
-					gameMessageType = GameMessageType.ROUND_LOST;
-					responseMessage.setPlayerScore(loserScore);
-					
-					// store scores
-					String otherPlayerSessionId = gameState.getOtherPlayerSessionId(playerSession.getId());
-					RoundScore roundScore = new RoundScore();
-					roundScore.setWord(gameState.getCurrentWord());
-					roundScore.setDidWin(false);
-					roundScore.setPlayerTimeMillis(playerTimeMillis);
-					roundScore.setPlayerScore(loserScore);
-					roundScore.setOpponentScore(winnerScore);
-					roundScore.setOpponentTimeMillis(gameState.getPlayerTime(otherPlayerSessionId));
-					scoreService.addRoundScore(playerSession.getId(), roundScore);
-					scoreService.addRoundScore(otherPlayerSessionId, roundScore.forOpponent());
-					
-					// start the next round
-					startNewRound(gameState);
-				} else {
-					// round had no previous winner - player won
-					gameMessageType = GameMessageType.ROUND_WON;
-					responseMessage.setPlayerScore(winnerScore);
-					gameState.setHasWinner(true);
-					// wait for other player to complete
-				}
+			if (gameState.hasWinner() 
+				&& gameState.getWinner().getId().equals(playerSession.getId())) {
+			
+				// fix double submission
+				gameMessageType = GameMessageType.NOT_ALLOWED;
+			
 			} else {
-				// player mistyped word
-				gameMessageType = GameMessageType.WORD_MISMATCH;
+			
+				Long currentTimeMillis = new Date().getTime();
+				if (gameState.getCurrentWord().equals(message.getWord())) {
+					// player sent word correctly
+					Long playerTimeMillis = currentTimeMillis - gameState.getRoundStartedMillis();
+					gameState.setPlayerTime(playerSession.getId(), playerTimeMillis);
+					responseMessage.setPlayerTimeMillis(playerTimeMillis);
+					// 1 point per character for the loser
+					int loserScore = gameState.getCurrentWord().length();
+					// 10 points per character for the winner
+					int winnerScore = loserScore * 10;
+					
+					if (gameState.hasWinner()) {
+						// round already has a winner - player lost
+						gameMessageType = GameMessageType.ROUND_LOST;
+						responseMessage.setPlayerScore(loserScore);
+						
+						// store scores
+						String otherPlayerSessionId = gameState.getOtherPlayerSessionId(playerSession.getId());
+						RoundScore roundScore = new RoundScore();
+						roundScore.setWord(gameState.getCurrentWord());
+						roundScore.setDidWin(false);
+						roundScore.setPlayerTimeMillis(playerTimeMillis);
+						roundScore.setPlayerScore(loserScore);
+						roundScore.setOpponentScore(winnerScore);
+						roundScore.setOpponentTimeMillis(gameState.getPlayerTime(otherPlayerSessionId));
+						scoreService.addRoundScore(playerSession.getId(), roundScore);
+						scoreService.addRoundScore(otherPlayerSessionId, roundScore.forOpponent());
+						
+						// start the next round
+						startNewRound = true;
+					} else {
+						// round had no previous winner - player won
+						gameMessageType = GameMessageType.ROUND_WON;
+						responseMessage.setPlayerScore(winnerScore);
+						gameState.setHasWinner(true);
+						gameState.setWinner(playerSession);
+						// wait for other player to complete
+					}
+				} else {
+					// player mistyped word
+					gameMessageType = GameMessageType.WORD_MISMATCH;
+				}
+			
 			}
 		} else {
 			// no game found
@@ -174,6 +189,17 @@ public class PlayerSocketService {
 		
 		responseMessage.setGameMessageType(gameMessageType);
 		sendMessage(playerSession, responseMessage);
+		
+		if (startNewRound) {
+			// delay the next round
+			new Timer().schedule( 
+				new TimerTask() {
+					@Override
+					public void run() {
+						startNewRound(gameState);
+					}
+				}, NEW_ROUND_THROTTLE_MILLIS);
+		}
 	}
 
 	private void findGameForPlayer(PlayerSocketSession playerSession) {
@@ -220,6 +246,7 @@ public class PlayerSocketService {
 		gameState.setCurrentWord(nextWord);
 		gameState.setRoundStartedMillis(new Date().getTime());
 		gameState.setHasWinner(false);
+		gameState.setWinner(null);
 		broadcastWord(gameState);
 	}
 

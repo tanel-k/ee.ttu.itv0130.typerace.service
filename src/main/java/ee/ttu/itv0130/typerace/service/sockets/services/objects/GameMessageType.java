@@ -4,5 +4,6 @@ public enum GameMessageType {
 	WORD_MISMATCH,
 	ROUND_LOST,
 	ROUND_WON,
-	NO_GAME_FOUND
+	NO_GAME_FOUND,
+	NOT_ALLOWED
 }
