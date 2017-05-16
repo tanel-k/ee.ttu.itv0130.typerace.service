@@ -126,16 +126,16 @@ public class PlayerSocketService {
 		GameState gameState = gameStateMap.get(playerSession.getId());
 		MessageTypeWordResponse responseMessage = new MessageTypeWordResponse();
 		GameMessageType gameMessageType;
-		boolean startNewRound = false;
 		
+		boolean startNewRound = false;
 		if (gameState != null) {
 			// game exists
-			if (gameState.hasWinner() 
-				&& gameState.getWinner().getId().equals(playerSession.getId())) {
-			
-				// fix double submission
+			if (gameState.hasWinner() && gameState.getWinner().getId().equals(playerSession.getId())) {
+				// fixes double submission
 				gameMessageType = GameMessageType.NOT_ALLOWED;
-			
+			} else if (gameState.isSuspended()) {
+				// fixes loser double submission
+				gameMessageType = GameMessageType.NOT_ALLOWED;
 			} else {
 			
 				Long currentTimeMillis = new Date().getTime();
@@ -180,8 +180,8 @@ public class PlayerSocketService {
 					// player mistyped word
 					gameMessageType = GameMessageType.WORD_MISMATCH;
 				}
-			
 			}
+			
 		} else {
 			// no game found
 			gameMessageType = GameMessageType.NO_GAME_FOUND;
@@ -191,6 +191,7 @@ public class PlayerSocketService {
 		sendMessage(playerSession, responseMessage);
 		
 		if (startNewRound) {
+			gameState.setSuspended(true);
 			// delay the next round
 			new Timer().schedule( 
 				new TimerTask() {
@@ -243,6 +244,7 @@ public class PlayerSocketService {
 
 	private void startNewRound(GameState gameState) {
 		String nextWord = wordService.getRandomWord();
+		gameState.setSuspended(false);
 		gameState.setCurrentWord(nextWord);
 		gameState.setRoundStartedMillis(new Date().getTime());
 		gameState.setHasWinner(false);

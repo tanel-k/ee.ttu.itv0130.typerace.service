@@ -12,6 +12,15 @@ public class GameState {
 	private Long roundStartedMillis;
 	private String currentWord;
 	private boolean hasWinner = false;
+	private boolean isSuspended = false;
+
+	public void setSuspended(boolean isSuspended) {
+		this.isSuspended = isSuspended;
+	}
+
+	public boolean isSuspended() {
+		return isSuspended;
+	}
 
 	public void setRoundStartedMillis(Long roundStartedMillis) {
 		this.roundStartedMillis = roundStartedMillis;
