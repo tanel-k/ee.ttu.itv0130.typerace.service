@@ -24,6 +24,7 @@ import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.player.
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.player.MessageTypeWord;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageBroadcastWord;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageConnectResponse;
+import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageForwardTaunt;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageJoinGameResponse;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageSetNicknameResponse;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageTerminateGame;
@@ -68,6 +69,9 @@ public class PlayerSocketService {
 				break;
 			case SET_NICKNAME:
 				handleSetNicknameMessage(playerSession, new MessageSetNickname(jsonMessage));
+				break;
+			case SEND_TAUNT:
+				handleSendTauntMessage(playerSession);
 				break;
 			case PING:
 				// some servers don't like to keep inactive conns open
@@ -131,6 +135,14 @@ public class PlayerSocketService {
 		}
 		
 		sendMessage(playerSession, response);
+	}
+
+	private void handleSendTauntMessage(PlayerSocketSession playerSession) {
+		GameState gameState = gameStateMap.get(playerSession.getId());
+		if (gameState != null) {
+			PlayerSocketSession opponentSession = gameState.getOtherPlayer(playerSession);
+			sendMessage(opponentSession, new MessageForwardTaunt());
+		}
 	}
 
 	private void handleTypeWordMessage(PlayerSocketSession playerSession, MessageTypeWord message) {
