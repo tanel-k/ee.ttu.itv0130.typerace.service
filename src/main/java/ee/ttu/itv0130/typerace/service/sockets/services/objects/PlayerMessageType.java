@@ -4,4 +4,5 @@ public enum PlayerMessageType {
 	SET_NICKNAME,
 	JOIN_GAME,
 	TYPE_WORD,
+	PING
 }

@@ -69,6 +69,9 @@ public class PlayerSocketService {
 			case SET_NICKNAME:
 				handleSetNicknameMessage(playerSession, new MessageSetNickname(jsonMessage));
 				break;
+			case PING:
+				// some servers don't like to keep inactive conns open
+				break;
 			default:
 				break;
 		}
