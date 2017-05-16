@@ -19,6 +19,6 @@ public class ScoreController {
 
 	@RequestMapping(value = "/scores/{sessionId}", method = RequestMethod.GET)
 	public PlayerScores getSessionScores(@PathVariable String sessionId, @RequestParam(name="afterIndex", required=false) Integer afterIndex) {
-		return scoreService.get(sessionId, Optional.ofNullable(afterIndex));
+		return scoreService.getWithoutCreate(sessionId, Optional.ofNullable(afterIndex));
 	}
 }

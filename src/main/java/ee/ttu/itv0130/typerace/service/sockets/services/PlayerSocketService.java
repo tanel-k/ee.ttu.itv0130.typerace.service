@@ -24,10 +24,12 @@ import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.player.
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.player.MessageTypeWord;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageBroadcastWord;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageConnectResponse;
+import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageJoinGameResponse;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageSetNicknameResponse;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageTerminateGame;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.MessageTypeWordResponse;
 import ee.ttu.itv0130.typerace.service.sockets.services.objects.messages.server.ServerMessage;
+import ee.ttu.itv0130.typerace.service.utils.StringUtils;
 
 @Service
 public class PlayerSocketService {
@@ -116,9 +118,15 @@ public class PlayerSocketService {
 	private void handleSetNicknameMessage(PlayerSocketSession playerSession, MessageSetNickname message) {
 		// nickname is broadcast together with current word
 		String nickname = message.getNickname();
-		playerSession.setNickname(nickname);
+		
 		MessageSetNicknameResponse response = new MessageSetNicknameResponse();
-		response.setIsAccepted(true);
+		if (isNicknameValid(nickname)) {
+			response.setIsAccepted(true);
+			playerSession.setNickname(nickname);
+		} else {
+			response.setIsAccepted(false);
+		}
+		
 		sendMessage(playerSession, response);
 	}
 
@@ -204,30 +212,41 @@ public class PlayerSocketService {
 	}
 
 	private void findGameForPlayer(PlayerSocketSession playerSession) {
-		if (lobbyMap.isEmpty()) {
-			// nobody else is waiting to join a game
-			lobbyMap.put(playerSession.getId(), new LobbyItem(playerSession, new Date()));
-		} else {
-			// find the player who has been in the lobby the longest
-			String lobbyKey = lobbyMap.entrySet()
-				.stream()
-				.reduce(null, (accEntry, currEntry) -> {
-					if (accEntry == null) {
-						return currEntry;
-					}
-					
-					LobbyItem acc = accEntry.getValue();
-					LobbyItem curr = currEntry.getValue();
-					if (curr.insertionDate.before(acc.insertionDate)) {
-						return currEntry;
-					}
-					
-					return accEntry;
-				})
-				.getKey();
-			
-			PlayerSocketSession otherPlayerSession = lobbyMap.remove(lobbyKey).playerSession;
-			startNewGame(playerSession, otherPlayerSession);
+		MessageJoinGameResponse message = new MessageJoinGameResponse();
+		boolean doErrorsExist = false;
+		if (!isNicknameValid(playerSession.getNickname())) {
+			message.addError("Invalid nickname");
+			doErrorsExist = true;
+		}
+		
+		sendMessage(playerSession, message);
+		
+		if (!doErrorsExist) {
+			if (lobbyMap.isEmpty()) {
+				// nobody else is waiting to join a game
+				lobbyMap.put(playerSession.getId(), new LobbyItem(playerSession, new Date()));
+			} else {
+				// find the player who has been in the lobby the longest
+				String lobbyKey = lobbyMap.entrySet()
+					.stream()
+					.reduce(null, (accEntry, currEntry) -> {
+						if (accEntry == null) {
+							return currEntry;
+						}
+						
+						LobbyItem acc = accEntry.getValue();
+						LobbyItem curr = currEntry.getValue();
+						if (curr.insertionDate.before(acc.insertionDate)) {
+							return currEntry;
+						}
+						
+						return accEntry;
+					})
+					.getKey();
+				
+				PlayerSocketSession otherPlayerSession = lobbyMap.remove(lobbyKey).playerSession;
+				startNewGame(playerSession, otherPlayerSession);
+			}
 		}
 	}
 
@@ -272,5 +291,9 @@ public class PlayerSocketService {
 		} catch (IOException e) {
 			// ignore for now
 		}
+	}
+
+	private boolean isNicknameValid(String nickname) {
+		return !StringUtils.isEmpty(nickname);
 	}
 }

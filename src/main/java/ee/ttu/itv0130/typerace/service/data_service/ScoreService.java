@@ -17,7 +17,15 @@ public class ScoreService {
 		scoreMap.remove(sessionId);
 	}
 
-	public synchronized PlayerScores get(String sessionId, Optional<Integer> optAfterIndex) {
+	public synchronized PlayerScores getWithoutCreate(String sessionId, Optional<Integer> optAfterIndex) {
+		if (scoreMap.containsKey(sessionId)) {
+			return getWithCreate(sessionId, optAfterIndex);
+		}
+		
+		return new PlayerScores();
+	}
+
+	public synchronized PlayerScores getWithCreate(String sessionId, Optional<Integer> optAfterIndex) {
 		if (!scoreMap.containsKey(sessionId)) {
 			PlayerScores playerScores = new PlayerScores();
 			scoreMap.put(sessionId, playerScores);
@@ -31,7 +39,7 @@ public class ScoreService {
 	}
 
 	public synchronized void addRoundScore(String sessionId, RoundScore roundScore) {
-		PlayerScores playerScores = get(sessionId, Optional.ofNullable((Integer) null));
+		PlayerScores playerScores = getWithCreate(sessionId, Optional.ofNullable((Integer) null));
 		playerScores.addRoundScore(roundScore);
 	}
 }
